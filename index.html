@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulasi Koperasi Serba Usaha "Maju Bersama" - Ekonomi Kelas XI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      user-select: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+  <!-- Header & Status Bar Utama -->
+  <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700 sticky top-0 z-40 px-4 py-3 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-people-roof text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base md:text-lg leading-tight text-white flex items-center gap-2">
+            KSU "Maju Bersama"
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Kelas XI SMA</span>
+          </h1>
+          <p class="text-xs text-slate-400">Simulasi Praktik Koperasi Serba Usaha & Perhitungan SHU</p>
+        </div>
+      </div>
+
+      <!-- Indikator Metrik Koperasi -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs md:text-sm font-semibold">
+        <!-- Kas Koperasi -->
+        <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/80 flex items-center gap-2">
+          <i class="fa-solid fa-vault text-amber-400"></i>
+          <div>
+            <span class="text-[10px] block text-slate-400 leading-none">Kas Koperasi</span>
+            <span id="cash-display" class="text-amber-400 font-bold">Rp 15.000.000</span>
+          </div>
+        </div>
+
+        <!-- Akumulasi SHU Berjalan -->
+        <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/80 flex items-center gap-2">
+          <i class="fa-solid fa-chart-line text-emerald-400"></i>
+          <div>
+            <span class="text-[10px] block text-slate-400 leading-none">Estimasi SHU Tahun Ini</span>
+            <span id="shu-display" class="text-emerald-400 font-bold">Rp 0</span>
+          </div>
+        </div>
+
+        <!-- Tingkat Kepercayaan Anggota (Loyalitas) -->
+        <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/80 flex items-center gap-2">
+          <i class="fa-solid fa-heart-pulse text-rose-400"></i>
+          <div>
+            <div class="flex justify-between text-[10px] text-slate-400 leading-none mb-1">
+              <span>Kepercayaan</span>
+              <span id="loyalty-pct">85%</span>
+            </div>
+            <div class="w-20 bg-slate-700 h-1.5 rounded-full overflow-hidden">
+              <div id="loyalty-bar" class="bg-rose-500 h-full rounded-full transition-all duration-300" style="width: 85%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Waktu Periode Kerja (Bulan 1 s/d 12 -> RAT) -->
+        <div class="bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700/80 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-check text-sky-400"></i>
+          <div>
+            <span class="text-[10px] block text-slate-400 leading-none">Bulan Berjalan</span>
+            <span id="month-display" class="text-sky-400 font-bold">Bulan 1 / 12</span>
+          </div>
+        </div>
+
+        <button id="btn-next-month" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-3 py-2 rounded-lg shadow-md active:scale-95 transition flex items-center gap-2 text-xs">
+          <span>Lanjut Bulan</span>
+          <i class="fa-solid fa-forward-step"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Canvas & Control Dashboard -->
+  <main class="max-w-7xl mx-auto w-full p-3 md:p-5 flex-1 flex flex-col gap-4">
+    
+    <!-- Bagian Kanvas Animasi Interaktif Koperasi -->
+    <div class="relative w-full bg-slate-950 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden h-72 sm:h-80 md:h-96">
+      <canvas id="coopCanvas"></canvas>
+      
+      <!-- Overlay Informasi Atas Canvas -->
+      <div class="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-xs flex items-center gap-2">
+        <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-slate-200 font-semibold" id="canvas-status">Pusat Layanan KSU: Anggota beraktivitas di unit-unit usaha</span>
+      </div>
+
+      <div class="absolute bottom-3 left-3 flex gap-2">
+        <button id="btn-toggle-sound" class="bg-slate-900/80 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 backdrop-blur transition">
+          <i class="fa-solid fa-volume-high text-emerald-400" id="sound-icon"></i>
+          <span id="sound-text">Suara: Nyala</span>
+        </button>
+        <button onclick="openHelpModal()" class="bg-slate-900/80 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 flex items-center gap-1.5 backdrop-blur transition">
+          <i class="fa-solid fa-circle-question text-sky-400"></i>
+          <span>Panduan Teori Koperasi</span>
+        </button>
+      </div>
+
+      <!-- Tombol Aksi Langsung di Atas Kanvas (Pintasan Unit) -->
+      <div class="absolute top-3 right-3 flex items-center gap-2">
+        <div class="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-xs text-slate-300">
+          <i class="fa-solid fa-users text-teal-400 mr-1"></i> <span id="total-members-count">24 Anggota Aktif</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 4 Unit Koperasi Serba Usaha (KSU) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      
+      <!-- Unit 1: Simpan Pinjam (USP) -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-4 flex flex-col justify-between hover:border-emerald-500/50 transition">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="p-2 rounded-lg bg-emerald-500/20 text-emerald-400"><i class="fa-solid fa-hand-holding-dollar text-lg"></i></span>
+            <span class="text-[11px] font-bold text-slate-400">Unit 1</span>
+          </div>
+          <h2 class="font-bold text-slate-100 text-sm mb-1">Simpan Pinjam (USP)</h2>
+          <p class="text-xs text-slate-400 mb-3">Kelola pinjaman produktif anggota & himpun simpanan sukarela.</p>
+          <div class="text-xs space-y-1 mb-4 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
+            <div class="flex justify-between"><span class="text-slate-400">Total Pinjaman Aktif:</span><span id="usp-active-loan" class="font-semibold text-slate-200">Rp 8.000.000</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Jasa Pinjaman:</span><span class="font-semibold text-emerald-400">1.2% / bulan</span></div>
+          </div>
+        </div>
+        <button onclick="openLoanModal()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-file-signature"></i> Verifikasi Pengajuan Pinjaman
+        </button>
+      </div>
+
+      <!-- Unit 2: Toko Waserda (Konsumsi) -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-4 flex flex-col justify-between hover:border-amber-500/50 transition">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="p-2 rounded-lg bg-amber-500/20 text-amber-400"><i class="fa-solid fa-basket-shopping text-lg"></i></span>
+            <span class="text-[11px] font-bold text-slate-400">Unit 2</span>
+          </div>
+          <h2 class="font-bold text-slate-100 text-sm mb-1">Toko Serba Ada (Waserda)</h2>
+          <p class="text-xs text-slate-400 mb-3">Sediakan sembako murah untuk anggota dengan prinsip harga wajar.</p>
+          <div class="text-xs space-y-1 mb-4 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
+            <div class="flex justify-between"><span class="text-slate-400">Stok Barang:</span><span id="waserda-stock" class="font-semibold text-slate-200">80 / 100 Karung</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Omzet Bulanan:</span><span id="waserda-revenue" class="font-semibold text-amber-400">Rp 4.200.000</span></div>
+          </div>
+        </div>
+        <button onclick="restockWaserda()" class="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-truck-ramp-box"></i> Kulakan / Tambah Stok Waserda
+        </button>
+      </div>
+
+      <!-- Unit 3: Pengadaan Sarana Produksi / Pertanian -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-4 flex flex-col justify-between hover:border-teal-500/50 transition">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="p-2 rounded-lg bg-teal-500/20 text-teal-400"><i class="fa-solid fa-seedling text-lg"></i></span>
+            <span class="text-[11px] font-bold text-slate-400">Unit 3</span>
+          </div>
+          <h2 class="font-bold text-slate-100 text-sm mb-1">Pengadaan Bibit & Pupuk</h2>
+          <p class="text-xs text-slate-400 mb-3">Distribusi sarana pertanian berkualitas untuk petani anggota koperasi.</p>
+          <div class="text-xs space-y-1 mb-4 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
+            <div class="flex justify-between"><span class="text-slate-400">Subsidi Anggota:</span><span class="font-semibold text-teal-400">10% Potongan</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Pesanan Masuk:</span><span id="agri-orders" class="font-semibold text-slate-200">12 Paket Pupuk</span></div>
+          </div>
+        </div>
+        <button onclick="fulfillAgriOrders()" class="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-boxes-packing"></i> Pasok Sarana Tani Anggota
+        </button>
+      </div>
+
+      <!-- Unit 4: Jasa Pembayaran & PPOB Digital -->
+      <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-4 flex flex-col justify-between hover:border-sky-500/50 transition">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="p-2 rounded-lg bg-sky-500/20 text-sky-400"><i class="fa-solid fa-receipt text-lg"></i></span>
+            <span class="text-[11px] font-bold text-slate-400">Unit 4</span>
+          </div>
+          <h2 class="font-bold text-slate-100 text-sm mb-1">Jasa Pembayaran (PPOB)</h2>
+          <p class="text-xs text-slate-400 mb-3">Layanan loket listrik, air PAM, BPJS, dan pulsa bagi warga sekitar.</p>
+          <div class="text-xs space-y-1 mb-4 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
+            <div class="flex justify-between"><span class="text-slate-400">Status Server:</span><span class="font-semibold text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Optimal</span></div>
+            <div class="flex justify-between"><span class="text-slate-400">Fee Jasa/Transaksi:</span><span class="font-semibold text-sky-400">Rp 2.500 / trx</span></div>
+          </div>
+        </div>
+        <button onclick="upgradeDigitalService()" class="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+          <i class="fa-solid fa-bolt"></i> Perluas Layanan Loket Digital
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Panel Interaktif Bawah: Log Kejadian & Aksi Cepat Kuis/Edukasi -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      
+      <!-- Log Transaksi & Kejadian Koperasi -->
+      <div class="lg:col-span-2 bg-slate-800/70 border border-slate-700 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-scroll text-slate-400"></i>
+            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-300">Buku Jurnal & Peristiwa Operasional</h3>
+          </div>
+          <span class="text-[11px] text-slate-400">Real-time update</span>
+        </div>
+        <div id="activity-log" class="h-32 overflow-y-auto space-y-2 pr-2 text-xs custom-scrollbar">
+          <div class="p-2 rounded bg-slate-900/60 border-l-4 border-emerald-500 text-slate-300">
+            <span class="text-[10px] text-slate-500 font-mono">[Bulan 1]</span> Koperasi Serba Usaha "Maju Bersama" resmi memulai tahun buku. Simpanan pokok & wajib anggota terkumpul aman di kas.
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu Tantangan Kuis Ekonomi / Studi Kasus Guru -->
+      <div class="bg-gradient-to-br from-indigo-900/40 to-slate-800 border border-indigo-700/40 rounded-xl p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-2 text-indigo-400 mb-2 font-bold text-xs">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <span>TANTANGAN MATERI KELAS XI</span>
+          </div>
+          <h4 class="font-bold text-slate-100 text-sm mb-1" id="quiz-question-title">Uji Pemahaman Asas Koperasi</h4>
+          <p class="text-xs text-slate-300 mb-3" id="quiz-question-desc">
+            Manakah landasan idiil dan landasan struktural koperasi di Indonesia?
+          </p>
+        </div>
+        <button onclick="openQuizModal()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs shadow transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-pen-to-square"></i> Jawab Kuis (+Kas Koperasi)
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer Info -->
+  <footer class="border-t border-slate-800 bg-slate-900/90 py-2.5 px-4 text-center text-xs text-slate-500">
+    Media Belajar Ekonomi Interaktif - KD 3.8 / Kurikulum Merdeka Fase F: Perkoperasian dalam Perekonomian Indonesia.
+  </footer>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. Modal Verifikasi Pinjaman Anggota (Simpan Pinjam) -->
+  <div id="modal-loan" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl relative">
+      <h3 class="text-lg font-bold text-slate-100 mb-1 flex items-center gap-2">
+        <i class="fa-solid fa-user-check text-emerald-400"></i> Pengajuan Pinjaman Produktif
+      </h3>
+      <p class="text-xs text-slate-400 mb-4">Sebagai pengurus, tentukan apakah pengajuan pinjaman dari anggota ini layak disetujui demi keamanan modal koperasi.</p>
+      
+      <div class="bg-slate-900/80 p-3.5 rounded-xl border border-slate-700 space-y-2 text-xs mb-4">
+        <div class="flex justify-between"><span class="text-slate-400">Nama Anggota:</span><span id="loan-applicant-name" class="font-bold text-white">Pak Joko (Petani Sayur)</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Tujuan Pinjaman:</span><span id="loan-applicant-purpose" class="font-medium text-emerald-300">Beli pompa air irigasi sawah</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Nominal Diajukan:</span><span id="loan-applicant-amount" class="font-bold text-amber-400">Rp 2.500.000</span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Riwayat Simpanan:</span><span id="loan-applicant-history" class="font-semibold text-slate-200">Aktif & Disiplin Simpanan Wajib</span></div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="approveLoan(true)" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition">
+          Setujui Pinjaman
+        </button>
+        <button onclick="approveLoan(false)" class="flex-1 py-2.5 bg-rose-600/80 hover:bg-rose-600 text-white font-bold rounded-lg text-xs transition">
+          Tolak Pinjaman
+        </button>
+        <button onclick="closeModal('modal-loan')" class="px-3 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-xs font-semibold">
+          Batal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Modal Kuis Ekonomi / RAT Simulasi -->
+  <div id="modal-quiz" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl relative">
+      <div class="flex justify-between items-center mb-3">
+        <span class="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold border border-indigo-500/30">Kuis Pengetahuan Koperasi</span>
+        <button onclick="closeModal('modal-quiz')" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <h3 id="modal-quiz-title" class="text-base font-bold text-slate-100 mb-2">Soal Uji Kompetensi Koperasi</h3>
+      <p id="modal-quiz-desc" class="text-xs text-slate-300 mb-4 leading-relaxed">Pertanyaan akan dimuat di sini...</p>
+      
+      <div id="quiz-options-container" class="space-y-2 mb-4">
+        <!-- Opsi jawaban dimasukkan via JS -->
+      </div>
+      <div id="quiz-feedback" class="text-xs p-2.5 rounded-lg hidden font-medium"></div>
+    </div>
+  </div>
+
+  <!-- 3. Modal Rapat Anggota Tahunan (RAT) & Pembagian SHU -->
+  <div id="modal-rat" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-emerald-500/40 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div class="text-center mb-4">
+        <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-2 text-2xl border border-emerald-500/30">
+          <i class="fa-solid fa-gavel"></i>
+        </div>
+        <h2 class="text-xl font-black text-white">RAPAT ANGGOTA TAHUNAN (RAT)</h2>
+        <p class="text-xs text-slate-400">Kekuasaan Tertinggi Koperasi Sesuai UU No. 25 Tahun 1992</p>
+      </div>
+
+      <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-700 mb-5 space-y-3 text-xs">
+        <h4 class="font-bold text-emerald-400 uppercase tracking-wider text-[11px] border-b border-slate-700 pb-1">Laporan Pertanggungjawaban Pengurus</h4>
+        <div class="grid grid-cols-2 gap-3">
+          <div><span class="text-slate-400">Total Kas Terakhir:</span> <p id="rat-final-cash" class="text-sm font-bold text-white">Rp 0</p></div>
+          <div><span class="text-slate-400">Total SHU Tahun Berjalan:</span> <p id="rat-final-shu" class="text-sm font-bold text-emerald-400">Rp 0</p></div>
+          <div><span class="text-slate-400">Tingkat Loyalitas:</span> <p id="rat-final-loyalty" class="text-sm font-bold text-rose-400">0%</p></div>
+          <div><span class="text-slate-400">Jumlah Transaksi Dilayani:</span> <p id="rat-final-trx" class="text-sm font-bold text-sky-400">0 Transaksi</p></div>
+        </div>
+      </div>
+
+      <!-- Contoh Kasus Perhitungan SHU Anggota -->
+      <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-700/80 mb-5">
+        <h4 class="font-bold text-amber-400 text-xs mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-calculator"></i> Contoh Perhitungan SHU Perorangan (Bu Siti)
+        </h4>
+        <p class="text-[11px] text-slate-300 mb-2 leading-relaxed">
+          Rumus: <span class="font-mono bg-slate-800 px-1 py-0.5 rounded text-emerald-300">SHU Anggota = Jasa Modal + Jasa Usaha/Anggota</span>
+        </p>
+        <div class="text-xs text-slate-400 space-y-1 bg-slate-950 p-3 rounded-lg font-mono">
+          <div class="flex justify-between"><span>Jasa Modal Bu Siti:</span><span id="rat-calc-jm" class="text-slate-200">Rp 0</span></div>
+          <div class="flex justify-between"><span>Jasa Anggota Bu Siti:</span><span id="rat-calc-ja" class="text-slate-200">Rp 0</span></div>
+          <div class="border-t border-slate-800 pt-1 flex justify-between font-bold text-emerald-400">
+            <span>Total Hak SHU Diterima:</span><span id="rat-calc-total">Rp 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button onclick="restartGame()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-2">
+          <i class="fa-solid fa-rotate-right"></i> Mulai Tahun Buku Baru (Tahun Depan)
+        </button>
+        <button onclick="closeModal('modal-rat')" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-xs font-semibold">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal Panduan Konsep Koperasi -->
+  <div id="modal-help" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl relative max-h-[85vh] overflow-y-auto custom-scrollbar">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-book-open text-sky-400"></i> Rangkuman Materi Ekonomi: Koperasi
+        </h3>
+        <button onclick="closeModal('modal-help')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
+        <div class="p-3 bg-slate-900 rounded-lg border border-slate-700">
+          <span class="font-bold text-emerald-400 block mb-1">1. Pengertian Koperasi Serba Usaha (KSU)</span>
+          Koperasi yang bidang usahanya mencakup lebih dari satu jenis kegiatan perekonomian, misalnya simpan pinjam, waserda (konsumsi), pengadaan sarana produksi tani, dan jasa pembayaran masyarakat.
+        </div>
+        <div class="p-3 bg-slate-900 rounded-lg border border-slate-700">
+          <span class="font-bold text-amber-400 block mb-1">2. Perbedaan Koperasi dengan Perseroan Terbatas (PT)</span>
+          Tujuan utama koperasi adalah memajukan kesejahteraan anggota dan masyarakat, bukan memburu laba sebesar-besarnya. Kekuasaan tertinggi koperasi dipegang oleh seluruh anggota dalam RAT (1 orang = 1 suara), berbeda dari PT yang berdasarkan jumlah lembar kepemilikan saham.
+        </div>
+        <div class="p-3 bg-slate-900 rounded-lg border border-slate-700">
+          <span class="font-bold text-teal-400 block mb-1">3. Sumber Modal Koperasi</span>
+          <ul class="list-disc ml-4 space-y-0.5 text-slate-400">
+            <li><strong>Modal Sendiri:</strong> Simpanan pokok, simpanan wajib, dana cadangan, dan hibah.</li>
+            <li><strong>Modal Pinjaman:</strong> Dari anggota (simpanan sukarela), koperasi lain, atau bank.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-800 border border-emerald-500 text-white px-4 py-3 rounded-xl shadow-2xl text-xs flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <i class="fa-solid fa-circle-check text-emerald-400 text-base" id="toast-icon"></i>
+    <span id="toast-msg">Notifikasi kegiatan</span>
+  </div>
+
+  <script>
+    /* =========================================================
+     * STATE GAME & DATA EKONOMI KOPERASI KELAS XI
+     * ========================================================= */
+    const gameState = {
+      month: 1,
+      maxMonths: 12,
+      cash: 15000000,          // Rp 15.000.000 Kas Awal
+      totalSHU: 0,
+      loyalty: 85,             // Persen (0 - 100)
+      membersCount: 24,
+      totalTransactions: 0,
+      soundEnabled: true,
+
+      // Detail Unit Bisnis
+      units: {
+        usp: { activeLoans: 8000000, interestRate: 0.012 },
+        waserda: { stock: 80, maxStock: 100, pricePerBag: 60000, revenue: 4200000 },
+        agri: { ordersPending: 12, unitProfit: 45000 },
+        digital: { level: 1, trxPerMonth: 120, feePerTrx: 2500 }
+      },
+
+      // Anggota simulasi untuk contoh SHU Bu Siti di RAT
+      buSiti: {
+        simpanan: 1500000, // Total simpanan pokok + wajib
+        belanja: 2400000   // Total belanja di waserda dan unit koperasi
+      }
+    };
+
+    // Bank Soal Kuis Kelas XI Sesuai Kurikulum
+    const quizDatabase = [
+      {
+        question: "Berdasarkan UU No. 25 Tahun 1992, landasan idiil bagi koperasi di Indonesia adalah...",
+        options: ["Pancasila", "UUD 1945 Pasal 33", "Gotong Royong", "Ketetapan MPR"],
+        answer: 0,
+        explanation: "Pancasila merupakan landasan idiil, sedangkan UUD 1945 Pasal 33 ayat (1) adalah landasan struktural/konstitusional.",
+        reward: 1000000
+      },
+      {
+        question: "Simpanan yang harus dibayar sekali saat seseorang pertama kali mendaftar menjadi anggota koperasi dan tidak dapat diambil selama masih menjadi anggota adalah...",
+        options: ["Simpanan Sukarela", "Simpanan Pokok", "Simpanan Wajib", "Dana Cadangan"],
+        answer: 1,
+        explanation: "Simpanan Pokok dibayarkan sekali di awal keanggotaan dengan besaran sama bagi setiap anggota.",
+        reward: 1200000
+      },
+      {
+        question: "Perangkat organisasi koperasi pemegang kekuasaan tertinggi dalam menentukan arah kebijakan dan pembagian SHU adalah...",
+        options: ["Pengurus Koperasi", "Dewan Penasihat", "Badan Pengawas", "Rapat Anggota Tahunan (RAT)"],
+        answer: 3,
+        explanation: "RAT merupakan kekuasaan tertinggi di mana setiap anggota berhak bersuara secara demokratis (1 orang 1 suara).",
+        reward: 1500000
+      },
+      {
+        question: "Dalam perhitungan SHU, bagian keuntungan yang dibagikan sebanding dengan besar kecilnya transaksi jasa/pembelian anggota pada koperasi disebut...",
+        options: ["Jasa Modal", "Jasa Anggota / Jasa Usaha", "Dana Sosial", "Dana Cadangan"],
+        answer: 1,
+        explanation: "Jasa Anggota dihitung dari partisipasi konsumsi/pembelian anggota pada unit usaha koperasi sepanjang tahun.",
+        reward: 1500000
+      }
+    ];
+
+    let currentQuizIndex = 0;
+
+    // Bank Calon Peminjam untuk Unit USP
+    const applicantPool = [
+      { name: "Pak Joko (Petani Sayur)", purpose: "Beli pompa air irigasi sawah", amount: 2500000, history: "Disiplin & Aktif", good: true },
+      { name: "Bu Minah (Warung Makan)", purpose: "Tambah modal kulakan bahan baku", amount: 3000000, history: "Rutin menabung simpanan wajib", good: true },
+      { name: "Pak Budi (Warga Baru)", purpose: "Beli motor pribadi baru tanpa jaminan", amount: 8000000, history: "Belum pernah setor simpanan wajib", good: false },
+      { name: "Pak Tejo (Pertenak Bebek)", purpose: "Renovasi kandang & bibit bebek", amount: 2000000, history: "Anggota teladan sejak 3 tahun", good: true }
+    ];
+    let currentApplicant = applicantPool[0];
+
+    /* =========================================================
+     * AUDIO ENGINE (Web Audio API - Nada Sintetis)
+     * ========================================================= */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.1) {
+      if (!gameState.soundEnabled) return;
+      try {
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio Context init pending user interaction");
+      }
+    }
+
+    function soundCoin() {
+      playTone(587.33, 'triangle', 0.1, 0.12);
+      setTimeout(() => playTone(880, 'triangle', 0.2, 0.12), 80);
+    }
+
+    function soundSuccess() {
+      playTone(523.25, 'sine', 0.1, 0.15);
+      setTimeout(() => playTone(659.25, 'sine', 0.15, 0.15), 100);
+      setTimeout(() => playTone(783.99, 'sine', 0.25, 0.15), 200);
+    }
+
+    function soundAlert() {
+      playTone(300, 'sawtooth', 0.2, 0.1);
+      setTimeout(() => playTone(250, 'sawtooth', 0.25, 0.1), 150);
+    }
+
+    /* =========================================================
+     * CANVAS & ANIMASI REPRESENTASI KOPERASI
+     * ========================================================= */
+    const canvas = document.getElementById('coopCanvas');
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let particles = [];
+    let membersNPC = [];
+
+    // Mengatur resolusi kanvas responsif
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      initNPCs();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Inisialisasi NPC Anggota Koperasi yang beraktivitas
+    function initNPCs() {
+      membersNPC = [];
+      const roles = ['petani', 'ibu_rumah_tangga', 'pedagang', 'guru'];
+      for (let i = 0; i < 7; i++) {
+        membersNPC.push({
+          x: Math.random() * (canvas.width - 100) + 50,
+          y: canvas.height * 0.65 + Math.random() * 40,
+          targetX: Math.random() * (canvas.width - 100) + 50,
+          speed: 0.6 + Math.random() * 0.8,
+          role: roles[i % roles.length],
+          facingRight: Math.random() > 0.5,
+          color: ['#10b981', '#f59e0b', '#06b6d4', '#6366f1'][i % 4],
+          stateTimer: Math.random() * 100
+        });
+      }
+    }
+
+    // Partikel Koin Melayang saat ada Keuntungan Transaksi
+    function spawnCoins(x, y, count = 5) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x || canvas.width / 2 + (Math.random() * 100 - 50),
+          y: y || canvas.height * 0.5,
+          vx: (Math.random() - 0.5) * 3,
+          vy: -2 - Math.random() * 3,
+          alpha: 1,
+          size: 6 + Math.random() * 4,
+          life: 40
+        });
+      }
+    }
+
+    // Gambar Gedung KSU & Booth 4 Unit
+    function drawCooperativeBuilding() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // 1. Langit & Lantai
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+      skyGrad.addColorStop(0, '#0f172a');
+      skyGrad.addColorStop(0.7, '#1e293b');
+      skyGrad.addColorStop(1, '#090d16');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Lantai pelataran Koperasi
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, h * 0.62, w, h * 0.38);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.62);
+      ctx.lineTo(w, h * 0.62);
+      ctx.stroke();
+
+      // 2. Gedung Kantor Utama KSU di Belakang
+      const bW = Math.min(w * 0.88, 700);
+      const bX = (w - bW) / 2;
+      const bY = h * 0.16;
+      const bH = h * 0.46;
+
+      // Dinding Gedung
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(bX, bY, bW, bH);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bX, bY, bW, bH);
+
+      // Papan Nama KSU "Maju Bersama"
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(bX + 20, bY - 18, bW - 40, 32);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 13px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('KOPERASI SERBA USAHA "MAJU BERSAMA" (BERASAS KEKELUARGAAN)', w / 2, bY + 3);
+
+      // 4 Ruang Layanan (USP, Waserda, Sarana Tani, PPOB)
+      const roomW = (bW - 50) / 4;
+      const roomNames = ['1. Simpan Pinjam', '2. Waserda', '3. Sarana Tani', '4. Loket PPOB'];
+      const roomColors = ['#059669', '#d97706', '#0d9488', '#0284c7'];
+      const roomIcons = ['\uf0d6', '\uf291', '\uf4d8', '\uf15c'];
+
+      for (let i = 0; i < 4; i++) {
+        const rX = bX + 15 + i * (roomW + 6);
+        const rY = bY + 30;
+        const rH = bH - 30;
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(rX, rY, roomW, rH);
+        ctx.strokeStyle = roomColors[i];
+        ctx.lineWidth = 2;
+        ctx.strokeRect(rX, rY, roomW, rH);
+
+        // Header Unit
+        ctx.fillStyle = roomColors[i];
+        ctx.fillRect(rX, rY, roomW, 20);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText(roomNames[i], rX + roomW / 2, rY + 14);
+
+        // Pintu/Meja Loket Layanan
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(rX + roomW * 0.15, rY + rH * 0.45, roomW * 0.7, rH * 0.55);
+
+        // Lampu status unit
+        ctx.beginPath();
+        ctx.arc(rX + roomW / 2, rY + 35, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+      }
+    }
+
+    // Menggambar NPC Anggota Koperasi
+    function drawNPC(npc) {
+      ctx.save();
+      ctx.translate(npc.x, npc.y);
+
+      // Bayangan kaki
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(0, 5, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Badan
+      ctx.fillStyle = npc.color;
+      ctx.fillRect(-7, -26, 14, 24);
+
+      // Kepala
+      ctx.fillStyle = '#fcd34d';
+      ctx.beginPath();
+      ctx.arc(0, -32, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Topi atau Ciri Khas (Petani / Anggota)
+      ctx.fillStyle = '#78350f';
+      ctx.beginPath();
+      ctx.arc(0, -36, 10, Math.PI, 0);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Update Animasi
+    function animateCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCooperativeBuilding();
+
+      // Update & Draw NPC
+      membersNPC.forEach(npc => {
+        const dx = npc.targetX - npc.x;
+        if (Math.abs(dx) > 2) {
+          npc.x += Math.sign(dx) * npc.speed;
+        } else {
+          npc.stateTimer--;
+          if (npc.stateTimer <= 0) {
+            npc.targetX = Math.random() * (canvas.width - 120) + 60;
+            npc.stateTimer = 80 + Math.random() * 120;
+          }
+        }
+        drawNPC(npc);
+      });
+
+      // Update & Draw Partikel Koin
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.08;
+        p.alpha -= 0.02;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animateCanvas);
+    }
+
+    /* =========================================================
+     * LOGIKA OPERASIONAL KSU & BULANAN (EKONOMI KOPERASI)
+     * ========================================================= */
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num).toLocaleString('id-ID');
+    }
+
+    function addLog(message, borderHex = 'border-emerald-500') {
+      const logBox = document.getElementById('activity-log');
+      const item = document.createElement('div');
+      item.className = `p-2 rounded bg-slate-900/60 border-l-4 ${borderHex} text-slate-300 animate-fadeIn`;
+      item.innerHTML = `<span class="text-[10px] text-slate-500 font-mono">[Bulan ${gameState.month}]</span> ${message}`;
+      logBox.prepend(item);
+    }
+
+    function showToast(msg, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      const toastIcon = document.getElementById('toast-icon');
+
+      toastMsg.innerText = msg;
+      if (isSuccess) {
+        toast.className = toast.className.replace('border-rose-500', 'border-emerald-500');
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+      } else {
+        toast.className = toast.className.replace('border-emerald-500', 'border-rose-500');
+        toastIcon.className = 'fa-solid fa-triangle-exclamation text-rose-400 text-base';
+      }
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+
+    function updateUI() {
+      document.getElementById('cash-display').innerText = formatRupiah(gameState.cash);
+      document.getElementById('shu-display').innerText = formatRupiah(gameState.totalSHU);
+      document.getElementById('loyalty-pct').innerText = `${Math.min(100, Math.max(0, gameState.loyalty))}%`;
+      document.getElementById('loyalty-bar').style.width = `${Math.min(100, Math.max(0, gameState.loyalty))}%`;
+      document.getElementById('month-display').innerText = `Bulan ${gameState.month} / ${gameState.maxMonths}`;
+      
+      // Unit detail updates
+      document.getElementById('usp-active-loan').innerText = formatRupiah(gameState.units.usp.activeLoans);
+      document.getElementById('waserda-stock').innerText = `${gameState.units.waserda.stock} / ${gameState.units.waserda.maxStock} Karung`;
+      document.getElementById('waserda-revenue').innerText = formatRupiah(gameState.units.waserda.revenue);
+      document.getElementById('agri-orders').innerText = `${gameState.units.agri.ordersPending} Paket Pupuk`;
+      document.getElementById('total-members-count').innerText = `${gameState.membersCount} Anggota Aktif`;
+    }
+
+    // Aksi 1: Simpan Pinjam (Persetujuan Kredit Mikro)
+    function openLoanModal() {
+      // Ambil pemohon acak
+      currentApplicant = applicantPool[Math.floor(Math.random() * applicantPool.length)];
+      document.getElementById('loan-applicant-name').innerText = currentApplicant.name;
+      document.getElementById('loan-applicant-purpose').innerText = currentApplicant.purpose;
+      document.getElementById('loan-applicant-amount').innerText = formatRupiah(currentApplicant.amount);
+      document.getElementById('loan-applicant-history').innerText = currentApplicant.history;
+      document.getElementById('modal-loan').classList.remove('hidden');
+    }
+
+    function approveLoan(isApproved) {
+      closeModal('modal-loan');
+      if (isApproved) {
+        if (gameState.cash < currentApplicant.amount) {
+          soundAlert();
+          showToast('Kas Koperasi tidak mencukupi untuk mencairkan pinjaman!', false);
+          return;
+        }
+
+        if (currentApplicant.good) {
+          gameState.cash -= currentApplicant.amount;
+          gameState.units.usp.activeLoans += currentApplicant.amount;
+          gameState.loyalty = Math.min(100, gameState.loyalty + 4);
+          gameState.totalTransactions++;
+          soundCoin();
+          spawnCoins(canvas.width * 0.25, canvas.height * 0.5, 6);
+          addLog(`Pinjaman disetujui untuk <b>${currentApplicant.name}</b> sebesar ${formatRupiah(currentApplicant.amount)}. Modal produktif anggota berputar.`, 'border-emerald-500');
+          showToast('Pinjaman produktif disalurkan dengan aman!');
+        } else {
+          // Peminjam berisiko tinggi tanpa simpanan wajib
+          gameState.cash -= currentApplicant.amount;
+          gameState.loyalty = Math.max(20, gameState.loyalty - 10);
+          soundAlert();
+          addLog(`Peringatan: <b>${currentApplicant.name}</b> menunggak angsuran! Pengurus kurang hati-hati menganalisis kelayakan kredit.`, 'border-rose-500');
+          showToast('Peringatan: Risiko kredit macet meningkat!', false);
+        }
+      } else {
+        if (!currentApplicant.good) {
+          gameState.loyalty = Math.min(100, gameState.loyalty + 3);
+          soundSuccess();
+          addLog(`Keputusan tepat! Pengurus menolak pinjaman spekulatif <b>${currentApplicant.name}</b> demi menjaga dana cadangan.`, 'border-sky-500');
+          showToast('Keputusan bijak! Modal koperasi terlindungi.');
+        } else {
+          gameState.loyalty = Math.max(10, gameState.loyalty - 5);
+          soundAlert();
+          addLog(`Penolakan pinjaman <b>${currentApplicant.name}</b> memicu kekecewaan karena ia adalah anggota produktif.`, 'border-amber-500');
+          showToast('Anggota kecewa karena pinjaman ditolak.', false);
+        }
+      }
+      updateUI();
+    }
+
+    // Aksi 2: Kulakan Waserda
+    function restockWaserda() {
+      const restockCost = 1500000;
+      if (gameState.cash < restockCost) {
+        soundAlert();
+        showToast('Kas tidak cukup untuk belanja pasokan Waserda!', false);
+        return;
+      }
+      if (gameState.units.waserda.stock >= gameState.units.waserda.maxStock) {
+        showToast('Gudang Waserda masih penuh stok!');
+        return;
+      }
+
+      gameState.cash -= restockCost;
+      gameState.units.waserda.stock = Math.min(gameState.units.waserda.maxStock, gameState.units.waserda.stock + 35);
+      gameState.loyalty = Math.min(100, gameState.loyalty + 2);
+      soundCoin();
+      spawnCoins(canvas.width * 0.45, canvas.height * 0.5, 5);
+      addLog(`Kulakan Waserda: Beras dan minyak goreng dipasok kembali. Sembako murah tersedia untuk anggota.`, 'border-amber-500');
+      showToast('Stok Waserda berhasil diisi kembali!');
+      updateUI();
+    }
+
+    // Aksi 3: Pemasokan Sarana Tani
+    function fulfillAgriOrders() {
+      if (gameState.units.agri.ordersPending <= 0) {
+        showToast('Semua pesanan bibit & pupuk telah terdistribusi!');
+        return;
+      }
+      const profit = gameState.units.agri.ordersPending * gameState.units.agri.unitProfit;
+      gameState.cash += profit;
+      gameState.totalSHU += profit;
+      gameState.totalTransactions += gameState.units.agri.ordersPending;
+      gameState.units.agri.ordersPending = 0;
+      gameState.loyalty = Math.min(100, gameState.loyalty + 3);
+
+      soundSuccess();
+      spawnCoins(canvas.width * 0.65, canvas.height * 0.5, 7);
+      addLog(`Unit Sarana Tani menyerahkan paket pupuk subsidi. Koperasi membukukan laba usaha ${formatRupiah(profit)}.`, 'border-teal-500');
+      showToast(`Pupuk sukses disalurkan! SHU bertambah ${formatRupiah(profit)}`);
+      updateUI();
+    }
+
+    // Aksi 4: Upgrade Layanan PPOB Digital
+    function upgradeDigitalService() {
+      const upgradeCost = 2000000;
+      if (gameState.cash < upgradeCost) {
+        soundAlert();
+        showToast('Kas koperasi tidak cukup untuk integrasi software PPOB!', false);
+        return;
+      }
+
+      gameState.cash -= upgradeCost;
+      gameState.units.digital.level++;
+      gameState.units.digital.trxPerMonth += 60;
+      gameState.membersCount += 4; // Menarik anggota baru
+      soundSuccess();
+      spawnCoins(canvas.width * 0.82, canvas.height * 0.5, 6);
+      addLog(`Inovasi Digital: Loket PPOB kini mendukung QRIS dan multi-biller. 4 anggota masyarakat mendaftar jadi anggota baru!`, 'border-sky-500');
+      showToast('Layanan PPOB ditingkatkan! Anggota bertambah.');
+      updateUI();
+    }
+
+    // Menjalankan Siklus Pergantian Bulan
+    document.getElementById('btn-next-month').addEventListener('click', () => {
+      if (gameState.month >= gameState.maxMonths) {
+        openRATModal();
+        return;
+      }
+
+      gameState.month++;
+
+      // 1. Penerimaan Simpanan Wajib Bulanan dari Anggota (Rp 50.000 / anggota)
+      const simpananWajibTotal = gameState.membersCount * 50000;
+      gameState.cash += simpananWajibTotal;
+
+      // 2. Pendapatan Jasa Pinjaman USP (1.2% dari pinjaman beredar)
+      const jasaUSP = Math.round(gameState.units.usp.activeLoans * gameState.units.usp.interestRate);
+      gameState.cash += jasaUSP;
+      gameState.totalSHU += jasaUSP;
+
+      // 3. Penjualan Toko Waserda
+      const soldStock = Math.min(gameState.units.waserda.stock, Math.floor(25 + Math.random() * 20));
+      gameState.units.waserda.stock -= soldStock;
+      const omzetWaserda = soldStock * gameState.units.waserda.pricePerBag;
+      const marginSHUWaserda = Math.round(omzetWaserda * 0.15); // Margin koperasi 15%
+      gameState.cash += omzetWaserda;
+      gameState.totalSHU += marginSHUWaserda;
+      gameState.units.waserda.revenue = omzetWaserda;
+
+      // 4. Pendapatan Jasa PPOB
+      const feePPOB = gameState.units.digital.trxPerMonth * gameState.units.digital.feePerTrx;
+      gameState.cash += feePPOB;
+      gameState.totalSHU += feePPOB;
+
+      // Regenerasi pesanan sarana tani
+      gameState.units.agri.ordersPending += Math.floor(6 + Math.random() * 8);
+
+      // Biaya Operasional Rutin (Listrik, inventaris, ATK)
+      const bebanOperasional = 1800000;
+      gameState.cash = Math.max(0, gameState.cash - bebanOperasional);
+
+      soundCoin();
+      spawnCoins(canvas.width / 2, canvas.height * 0.5, 8);
+      addLog(`Pergantian Bulan: Simpanan Wajib anggota (+${formatRupiah(simpananWajibTotal)}) diterima. Jasa pinjaman & omzet waserda masuk ke pembukuan. Beban operasional (-${formatRupiah(bebanOperasional)}) terbayar.`, 'border-sky-500');
+
+      if (gameState.units.waserda.stock <= 15) {
+        addLog(`Peringatan: Stok Waserda menipis (${gameState.units.waserda.stock} karung tersisa). Segera kulakan!`, 'border-amber-500');
+      }
+
+      updateUI();
+
+      if (gameState.month === gameState.maxMonths) {
+        showToast('Bulan ke-12 selesai! Saatnya menyelenggarakan RAT (Rapat Anggota Tahunan).');
+        setTimeout(openRATModal, 1200);
+      }
+    });
+
+    /* =========================================================
+     * MODAL & KUIS LOGIC (Kurikulum Kelas XI)
+     * ========================================================= */
+    function openQuizModal() {
+      const q = quizDatabase[currentQuizIndex];
+      document.getElementById('modal-quiz-title').innerText = `Pertanyaan #${currentQuizIndex + 1}`;
+      document.getElementById('modal-quiz-desc').innerText = q.question;
+
+      const optsContainer = document.getElementById('quiz-options-container');
+      optsContainer.innerHTML = '';
+
+      const feedback = document.getElementById('quiz-feedback');
+      feedback.classList.add('hidden');
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-2.5 rounded-lg bg-slate-900/80 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 transition';
+        btn.innerHTML = `<span class="font-bold text-indigo-400 mr-2">${String.fromCharCode(65 + idx)}.</span> ${opt}`;
+        btn.onclick = () => submitQuizAnswer(idx);
+        optsContainer.appendChild(btn);
+      });
+
+      document.getElementById('modal-quiz').classList.remove('hidden');
+    }
+
+    function submitQuizAnswer(selectedIdx) {
+      const q = quizDatabase[currentQuizIndex];
+      const feedback = document.getElementById('quiz-feedback');
+      feedback.classList.remove('hidden');
+
+      if (selectedIdx === q.answer) {
+        soundSuccess();
+        feedback.className = 'text-xs p-2.5 rounded-lg font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        feedback.innerHTML = `<strong>Tepat Sekali!</strong> (+${formatRupiah(q.reward)} Hibah Edukasi ke Kas)<br><span class="text-slate-300">${q.explanation}</span>`;
+        gameState.cash += q.reward;
+        gameState.loyalty = Math.min(100, gameState.loyalty + 5);
+        addLog(`Kuis Terjawab Benar: Materi perkoperasian dikuasai. Menerima dana apresiasi pendidikan koperasi sebesar ${formatRupiah(q.reward)}.`, 'border-emerald-500');
+        updateUI();
+
+        // Ganti soal untuk sesi kuis berikutnya
+        currentQuizIndex = (currentQuizIndex + 1) % quizDatabase.length;
+        setTimeout(() => {
+          closeModal('modal-quiz');
+        }, 2500);
+      } else {
+        soundAlert();
+        feedback.className = 'text-xs p-2.5 rounded-lg font-medium bg-rose-500/20 text-rose-300 border border-rose-500/30';
+        feedback.innerHTML = `<strong>Jawaban Kurang Tepat!</strong><br><span class="text-slate-300">${q.explanation}</span> Coba telaah kembali materi perkoperasian.`;
+      }
+    }
+
+    /* =========================================================
+     * RAPAT ANGGOTA TAHUNAN (RAT) & RUMUS SHU KELAS XI
+     * ========================================================= */
+    function openRATModal() {
+      document.getElementById('rat-final-cash').innerText = formatRupiah(gameState.cash);
+      document.getElementById('rat-final-shu').innerText = formatRupiah(gameState.totalSHU);
+      document.getElementById('rat-final-loyalty').innerText = `${gameState.loyalty}%`;
+      document.getElementById('rat-final-trx').innerText = `${gameState.totalTransactions + (gameState.month * 15)} Transaksi`;
+
+      // Kalkulasi SHU Riil Anggota (Bu Siti):
+      // Asumsi AD/ART Koperasi:
+      // - Alokasi Jasa Modal (JM) = 25% dari total SHU
+      // - Alokasi Jasa Usaha/Anggota (JA) = 30% dari total SHU
+      // Total Modal Koperasi = Rp 40.000.000
+      // Total Omzet Usaha Koperasi = Rp 50.000.000
+      const totalSimpananKoperasi = 40000000;
+      const totalOmzetKoperasi = 50000000;
+
+      const porsiJM_Koperasi = gameState.totalSHU * 0.25;
+      const porsiJA_Koperasi = gameState.totalSHU * 0.30;
+
+      // Rumus Bu Siti:
+      // JM Bu Siti = (Simpanan Bu Siti / Total Simpanan Koperasi) * Porsi JM Koperasi
+      // JA Bu Siti = (Belanja Bu Siti / Total Omzet Koperasi) * Porsi JA Koperasi
+      const shuModalBuSiti = Math.round((gameState.buSiti.simpanan / totalSimpananKoperasi) * porsiJM_Koperasi);
+      const shuAnggotaBuSiti = Math.round((gameState.buSiti.belanja / totalOmzetKoperasi) * porsiJA_Koperasi);
+      const totalSHUBuSiti = shuModalBuSiti + shuAnggotaBuSiti;
+
+      document.getElementById('rat-calc-jm').innerText = `${formatRupiah(shuModalBuSiti)} (Dari simpanan ${formatRupiah(gameState.buSiti.simpanan)})`;
+      document.getElementById('rat-calc-ja').innerText = `${formatRupiah(shuAnggotaBuSiti)} (Dari partisipasi transaksi ${formatRupiah(gameState.buSiti.belanja)})`;
+      document.getElementById('rat-calc-total').innerText = formatRupiah(totalSHUBuSiti);
+
+      document.getElementById('modal-rat').classList.remove('hidden');
+      soundSuccess();
+    }
+
+    function restartGame() {
+      closeModal('modal-rat');
+      gameState.month = 1;
+      gameState.cash += Math.round(gameState.totalSHU * 0.2); // Cadangan koperasi dialihkan ke kas tahun depan
+      gameState.totalSHU = 0;
+      gameState.loyalty = 85;
+      addLog(`Tahun Buku Baru Dimulai: Hasil RAT disetujui bersama secara musyawarah mufakat. Selamat bertugas kembali!`, 'border-emerald-500');
+      updateUI();
+      showToast('Tahun buku baru resmi dibuka!');
+    }
+
+    function openHelpModal() {
+      document.getElementById('modal-help').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // Toggle Sound Button
+    document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+      gameState.soundEnabled = !gameState.soundEnabled;
+      const icon = document.getElementById('sound-icon');
+      const text = document.getElementById('sound-text');
+      if (gameState.soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-emerald-400';
+        text.innerText = 'Suara: Nyala';
+        soundCoin();
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-slate-500';
+        text.innerText = 'Suara: Mute';
+      }
+    });
+
+    // Inisialisasi Pertama saat Halaman Dimuat
+    window.onload = function() {
+      resizeCanvas();
+      updateUI();
+      animateCanvas();
+    };
+  </script>
+</body>
+</html>
